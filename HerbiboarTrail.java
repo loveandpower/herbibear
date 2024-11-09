@@ -1,18 +1,25 @@
+package io.ruin.model.content;
+
+import io.ruin.model.map.Position;
+import io.ruin.model.map.object.GameObject;
+import java.util.ArrayList;
+import java.util.List;
+
 public class HerbiboarTrail {
     private static final int FOOTPRINT_OBJECT_ID = 30918;
     private static final int FOOTPRINT_LIFETIME_TICKS = 50;
 
-    private final List<Coordinate> trailCoordinates;
+    private final List<Position> trailPositions;
     private final List<HerbiboarFootprint> footprints;
 
-    public HerbiboarTrail(Coordinate start, Coordinate end, int numFootprints) {
-        this.trailCoordinates = generateTrail(start, end, numFootprints);
+    public HerbiboarTrail(Position start, Position end, int numFootprints) {
+        this.trailPositions = generateTrail(start, end, numFootprints);
         this.footprints = new ArrayList<>();
         createFootprints();
     }
 
-    private List<Coordinate> generateTrail(Coordinate start, Coordinate end, int numFootprints) {
-        List<Coordinate> trail = new ArrayList<>();
+    private List<Position> generateTrail(Position start, Position end, int numFootprints) {
+        List<Position> trail = new ArrayList<>();
         trail.add(start);
 
         int dx = end.getX() - start.getX();
@@ -21,7 +28,7 @@ public class HerbiboarTrail {
         for (int i = 1; i < numFootprints - 1; i++) {
             int x = start.getX() + (dx * i / (numFootprints - 1));
             int y = start.getY() + (dy * i / (numFootprints - 1));
-            trail.add(new Coordinate(x, y, start.getPlane()));
+            trail.add(new Position(x, y, start.getZ()));
         }
 
         trail.add(end);
@@ -29,24 +36,33 @@ public class HerbiboarTrail {
     }
 
     private void createFootprints() {
-        for (Coordinate coord : trailCoordinates) {
-            footprints.add(new HerbiboarFootprint(coord, FOOTPRINT_LIFETIME_TICKS));
+        for (Position pos : trailPositions) {
+            footprints.add(new HerbiboarFootprint(pos));
         }
     }
 
-    public void spawnFootprints(World world) {
+    public void spawnFootprints() {
         for (HerbiboarFootprint footprint : footprints) {
-            world.spawnObject(FOOTPRINT_OBJECT_ID, footprint.getLocation());
+            GameObject.spawn(FOOTPRINT_OBJECT_ID, footprint.getLocation(), 10, 0);
         }
     }
 
-    public void tick(World world) {
-        for (HerbiboarFootprint footprint : footprints) {
+    public void tick() {
+        footprints.removeIf(footprint -> {
             footprint.tick();
             if (footprint.shouldDespawn()) {
-                world.removeObject(FOOTPRINT_OBJECT_ID, footprint.getLocation());
+                GameObject.remove(FOOTPRINT_OBJECT_ID, footprint.getLocation());
+                return true;
             }
-        }
-        footprints.removeIf(HerbiboarFootprint::shouldDespawn);
+            return false;
+        });
+    }
+
+    public boolean isComplete() {
+        return footprints.isEmpty();
+    }
+
+    public Position getLastPosition() {
+        return trailPositions.get(trailPositions.size() - 1);
     }
 }
