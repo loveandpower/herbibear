@@ -46,6 +46,6 @@ public class HerbDropTable {
             }
         }
         
-        return null; // Fallback, should not happen
+        return null; // Fallsafe
     }
 }
